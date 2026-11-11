@@ -1,5 +1,5 @@
 // オフラインでも開けるようにする。新しい版があればネットから、なければ保存しておいたものを使う
-const CACHE = 'vt-v5';
+const CACHE = 'vt-v6';
 const ASSETS = [
   './', './index.html', './css/style.css',
   './js/app.js', './js/db.js', './js/settings.js', './js/icons.js',

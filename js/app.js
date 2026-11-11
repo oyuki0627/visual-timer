@@ -62,27 +62,51 @@ const remaining = () => active.end - (active.pausedAt || Date.now());
 const activeMsOf = (a, endT) => Math.max(0, endT - a.start - a.pausedMs - (a.pausedAt ? endT - a.pausedAt : 0));
 
 // ---------- 音・通知・画面 ----------
-let actx;
+// チャイムの音を WAV として作り、<audio> で鳴らす。
+// iPhone の Web Audio はマナーモードで消えるうえ、タップ中にしか鳴らせないため、
+// 最初のタップで一度だけ無音再生して「鳴らしてよい状態」にしておく。
+function makeBellURL() {
+  const rate = 22050, len = Math.floor(rate * 2.4);
+  const buf = new ArrayBuffer(44 + len * 2), v = new DataView(buf);
+  const w = (o, s) => [...s].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+  w(0, 'RIFF'); v.setUint32(4, 36 + len * 2, true); w(8, 'WAVE'); w(12, 'fmt ');
+  v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, rate, true); v.setUint32(28, rate * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true);
+  w(36, 'data'); v.setUint32(40, len * 2, true);
+  const notes = [[659.25, 0], [987.77, 0.22], [1318.5, 0.44]];
+  for (let i = 0; i < len; i++) {
+    const t = i / rate;
+    let s = 0;
+    for (const [f, d] of notes) {
+      const x = t - d;
+      if (x >= 0) s += Math.sin(2 * Math.PI * f * x) * Math.min(1, x / 0.02) * Math.exp(-x * 2.6) * 0.3;
+    }
+    v.setInt16(44 + i * 2, clamp(s, -1, 1) * 32767, true);
+  }
+  return URL.createObjectURL(new Blob([buf], { type: 'audio/wav' }));
+}
+const bell = new Audio(makeBellURL());
+bell.preload = 'auto';
+let audioReady = false, ringing = false;
+
 function unlockAudio() {
-  try {
-    actx ||= new (window.AudioContext || window.webkitAudioContext)();
-    if (actx.state === 'suspended') actx.resume();
-  } catch {}
+  if (audioReady || ringing) return;
+  bell.muted = true;
+  bell.play()
+    .then(() => {
+      if (!ringing) { bell.pause(); bell.currentTime = 0; }
+      bell.muted = false;
+      audioReady = true;
+    })
+    .catch(() => { bell.muted = false; });
 }
 function chime() {
-  if (!actx) return;
-  const t = actx.currentTime;
-  [[659.25, 0], [987.77, 0.22], [1318.5, 0.44]].forEach(([f, d]) => {
-    const o = actx.createOscillator(), g = actx.createGain();
-    o.type = 'sine';
-    o.frequency.value = f;
-    g.gain.setValueAtTime(0.0001, t + d);
-    g.gain.exponentialRampToValueAtTime(0.22, t + d + 0.03);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + d + 1.8);
-    o.connect(g).connect(actx.destination);
-    o.start(t + d);
-    o.stop(t + d + 1.9);
-  });
+  ringing = true;
+  bell.muted = false;
+  try { bell.currentTime = 0; } catch {}
+  bell.play().then(() => { audioReady = true; }).catch(() => {});
+  clearTimeout(chime.t);
+  chime.t = setTimeout(() => { ringing = false; }, 2600);
 }
 async function alertUser(again) {
   const c = TYPES[active.type];
@@ -806,7 +830,9 @@ document.addEventListener('click', (e) => {
   if (!b || b.closest('.sheet-bg')) return;
   actions[b.dataset.act]?.(b.dataset.v);
 });
-document.addEventListener('pointerdown', unlockAudio, { once: true });
+// iPhone はタップの「指を離したとき」でないと音を許可しないので touchend と click で準備する
+document.addEventListener('touchend', unlockAudio, { passive: true });
+document.addEventListener('click', unlockAudio);
 document.addEventListener('change', (e) => {
   if (e.target.id === 'importFile') {
     if (e.target.files[0]) importData(e.target.files[0]);
