@@ -114,7 +114,20 @@ main {
 .big-num { font-size: 44px; font-weight: 500; text-align: center; line-height: 1.2; }
 .big-num span { font-size: 18px; margin-left: 2px; color: var(--sub); }
 .hidden-digits { visibility: hidden; height: 0; }
-.stepper { display: flex; align-items: center; justify-content: center; gap: 22px; }
+.min-num {
+  border: 0; background: var(--card); border-radius: 14px; text-align: center; padding: 0 4px;
+  -moz-appearance: textfield; appearance: textfield;
+}
+.min-num::-webkit-outer-spin-button, .min-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.min-num:focus { outline: 2px solid var(--ink); }
+.min-big { display: flex; align-items: baseline; justify-content: center; gap: 4px; }
+.min-big .min-num { width: 2.6em; font-size: 44px; font-weight: 500; line-height: 1.25; }
+.range-wrap { padding: 4px 8px 0; }
+.min-range { -webkit-appearance: none; appearance: none; width: 100%; height: 40px; margin: 0; background: transparent; display: block; touch-action: pan-y; }
+.min-range::-webkit-slider-runnable-track { height: 8px; border-radius: 4px; background: #DDD7D1; }
+.min-range::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 30px; margin-top: -11px; border-radius: 50%; background: var(--ink); border: 3px solid #fff; }
+.min-range::-moz-range-track { height: 8px; border-radius: 4px; background: #DDD7D1; }
+.min-range::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--ink); border: 3px solid #fff; }
 .pill {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 6px 14px; border-radius: 999px; font-size: 14px;
@@ -136,8 +149,8 @@ main {
 .pick { display: flex; flex-direction: column; gap: 8px; background: var(--card); border-radius: 22px; padding: 10px 12px; }
 .pick-top { gap: 6px; }
 .pick-top .sub { font-size: 13px; }
-.pick-top .round { background: var(--bg); }
-.pick-v { min-width: 52px; text-align: center; font-size: 18px; }
+.pick-v { font-size: 16px; display: inline-flex; align-items: baseline; gap: 4px; }
+.pick-v .min-num { width: 3.2em; min-height: 40px; font-size: 20px; background: var(--bg); }
 .pick .chips { gap: 6px; }
 .pick .chip { background: var(--bg); padding: 6px 16px; min-height: 40px; }
 .pick .chip.on { background: var(--ink); }

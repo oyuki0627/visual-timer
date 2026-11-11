@@ -221,8 +221,26 @@ async function goNext(type) {
   startTimer(type, min, type === 'work' ? ui.label : '');
 }
 
-// 増減の幅: 10分以下は1分ずつ、それより上は5分ずつ
-const stepMin = (m, up) => clamp(up ? m + (m < 10 ? 1 : 5) : m - (m <= 10 ? 1 : 5), 1, 180);
+// 時間の調整: 数字をタップしてテンキーで入力するか、スライダーで5分きざみに動かす
+const toSlider = (m) => clamp(Math.round(m / 5), 0, 24);
+const fromSlider = (i) => Math.max(1, i * 5);
+const numInput = (which, m) =>
+  `<input class="min-num num" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="180" data-min="${which}" value="${m}" aria-label="分数（タップして入力）">`;
+const rangeInput = (which, m) =>
+  `<input class="min-range" type="range" min="0" max="24" step="1" data-min="${which}" value="${toSlider(m)}" aria-label="時間をスライダーで調整">`;
+
+// 入力中は画面を作り直さず、関係する表示だけ書き換える（作り直すとドラッグや入力が途切れるため）
+function setMin(which, m, src) {
+  if (which === 'idle') ui.min = m; else ui.nextMin = m;
+  const root = $('#view-timer');
+  root.querySelectorAll(`[data-min="${which}"]`).forEach((el) => {
+    if (el === src) return;
+    el.value = el.type === 'range' ? toSlider(m) : m;
+  });
+  root.querySelectorAll(`[data-act="${which === 'idle' ? 'min' : 'nmin'}"]`).forEach((b) => b.classList.toggle('on', +b.dataset.v === m));
+  root.querySelectorAll('.js-min').forEach((el) => { el.textContent = m; });
+  tick();
+}
 
 async function finishHere() {
   await recordActive();
@@ -291,12 +309,9 @@ function idleHTML() {
   return `<div class="screen">
     <div class="types" role="group" aria-label="タイマーの種類">${types}</div>
     <div class="disk-wrap">${diskSVG(t, 1)}</div>
-    <div class="stepper">
-      <button class="round" data-act="step" data-v="-1" aria-label="短くする">${icon('minus')}</button>
-      <div class="big-num num">${ui.min}<span>分</span></div>
-      <button class="round" data-act="step" data-v="1" aria-label="長くする">${icon('plus')}</button>
-    </div>
+    <div class="big-num num min-big">${numInput('idle', ui.min)}<span>分</span></div>
     <p class="sub center" id="endHint"></p>
+    <div class="range-wrap">${rangeInput('idle', ui.min)}</div>
     ${presets}${labels}
     <div class="actions">
       <button class="btn big" data-act="start" style="background:${c.fill};color:${c.onFill}">${icon('play')}${t === 'work' ? '作業をはじめる' : `${c.name}をはじめる`}</button>
@@ -331,10 +346,9 @@ function pickHTML(type, title) {
   return `<div class="pick">
     <div class="row pick-top">
       <span class="sub grow">${title}</span>
-      <button class="round sm" data-act="nstep" data-v="-1" aria-label="短くする">${icon('minus', 18)}</button>
-      <span class="num pick-v">${m}分</span>
-      <button class="round sm" data-act="nstep" data-v="1" aria-label="長くする">${icon('plus', 18)}</button>
+      <span class="num pick-v">${numInput('next', m)}分</span>
     </div>
+    ${rangeInput('next', m)}
     <div class="chips">${presets.map((x) => `<button class="chip ${x === m ? 'on' : ''}" data-act="nmin" data-v="${x}">${x}分</button>`).join('')}</div>
   </div>`;
 }
@@ -371,7 +385,7 @@ async function doneHTML() {
       <div class="actions">
         ${pickHTML(rec.type, `${r.name}の時間`)}
         <div class="row">${others.map(midBtn).join('')}</div>
-        <button class="btn big" data-act="next" data-v="${rec.type}" style="background:${r.fill};color:${r.onFill}">${icon(r.icon)}${r.verb}<span class="num">${ui.nextMin ?? defMin(rec.type)}分</span></button>
+        <button class="btn big" data-act="next" data-v="${rec.type}" style="background:${r.fill};color:${r.onFill}">${icon(r.icon)}${r.verb}<span class="num"><span class="js-min">${ui.nextMin ?? defMin(rec.type)}</span>分</span></button>
         <div class="row center"><button class="link" data-act="extend">あと5分だけ</button>${resume}<button class="link" data-act="finish">ここで終わり</button></div>
       </div>
     </div>`;
@@ -388,7 +402,7 @@ async function doneHTML() {
     <div class="actions">
       ${pickHTML('work', '作業の時間')}
       ${a.type !== 'meal' ? `<div class="row">${midBtn('meal')}</div>` : ''}
-      <button class="btn big" data-act="next" data-v="work" style="background:${w.fill};color:${w.onFill}">${icon('play')}作業にもどる<span class="num">${ui.nextMin ?? S.workMin}分${ui.label ? ` ・ ${esc(ui.label)}` : ''}</span></button>
+      <button class="btn big" data-act="next" data-v="work" style="background:${w.fill};color:${w.onFill}">${icon('play')}作業にもどる<span class="num"><span class="js-min">${ui.nextMin ?? S.workMin}</span>分${ui.label ? ` ・ ${esc(ui.label)}` : ''}</span></button>
       <div class="row center"><button class="link" data-act="extend">もう少し休む（+5分）</button>${resume}<button class="link" data-act="finish">今日はここまで</button></div>
     </div>
   </div>`;
@@ -783,9 +797,7 @@ const actions = {
   tab: (v) => showView(v),
   type: (v) => { ui.type = v; ui.min = defMin(v); renderTimer(); },
   min: (v) => { ui.min = +v; renderTimer(); },
-  step: (v) => { ui.min = stepMin(ui.min, +v > 0); renderTimer(); },
   nmin: (v) => { ui.nextMin = +v; renderTimer(); },
-  nstep: (v) => { ui.nextMin = stepMin(ui.nextMin ?? defMin(ui.nextFor), +v > 0); renderTimer(); },
   label: (v) => { ui.label = v; store.set('vt-label', v); renderTimer(); },
   start: () => startTimer(ui.type, ui.min, ui.label),
   pause: () => togglePause(),
@@ -835,7 +847,21 @@ document.addEventListener('click', (e) => {
 // iPhone はタップの「指を離したとき」でないと音を許可しないので touchend と click で準備する
 document.addEventListener('touchend', unlockAudio, { passive: true });
 document.addEventListener('click', unlockAudio);
+document.addEventListener('input', (e) => {
+  const el = e.target, which = el.dataset?.min;
+  if (!which) return;
+  if (el.type === 'range') return setMin(which, fromSlider(+el.value), el);
+  const m = parseInt(el.value, 10);
+  if (m >= 1 && m <= 180) setMin(which, m, el);
+});
+document.addEventListener('focusin', (e) => { if (e.target.classList?.contains('min-num')) e.target.select(); });
 document.addEventListener('change', (e) => {
+  if (e.target.dataset?.min) {
+    // 入力が終わったら、範囲に収めて画面を整える
+    const cur = e.target.dataset.min === 'idle' ? ui.min : (ui.nextMin ?? defMin(ui.nextFor));
+    if (e.target.type === 'number') setMin(e.target.dataset.min, clamp(parseInt(e.target.value, 10) || cur, 1, 180), null);
+    return;
+  }
   if (e.target.id === 'importFile') {
     if (e.target.files[0]) importData(e.target.files[0]);
     e.target.value = '';
@@ -845,6 +871,7 @@ document.addEventListener('change', (e) => {
 });
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.id === 'newLabel') actions['label-add']();
+  if (e.key === 'Enter' && e.target.classList?.contains('min-num')) e.target.blur();
   if (e.key === 'Escape') document.querySelector('.sheet-bg')?.remove();
 });
 document.addEventListener('visibilitychange', () => {
