@@ -1,9 +1,9 @@
 // タイマーの種類と色。fill = 円やボタンの塗り、tint = 薄い背景、ink = tint の上の文字、onFill = fill の上の文字
 export const TYPES = {
-  work:  { name: '作業',       verb: '作業にもどる', icon: 'work',   fill: '#A8B1C6', tint: '#E2E6EE', ink: '#3E475E', onFill: '#353C4E' },
-  short: { name: '短い休憩',   verb: '休憩する',     icon: 'coffee', fill: '#ADAB81', tint: '#DEE0C9', ink: '#47462C', onFill: '#353C4E' },
-  long:  { name: '長めの休憩', verb: '長めに休む',   icon: 'moon',   fill: '#E4CEC8', tint: '#F3E6E2', ink: '#6E4A42', onFill: '#353C4E' },
-  meal:  { name: '食事',       verb: '食事にする',   icon: 'bowl',   fill: '#E7C29A', tint: '#F6E6D4', ink: '#6A4521', onFill: '#353C4E' },
+  work:  { name: '作業',       verb: '作業にもどる', icon: 'work',   fill: '#91A2C0', tint: '#DDE3EE', ink: '#36435F', onFill: '#353C4E' },
+  short: { name: '短い休憩',   verb: '休憩する',     icon: 'coffee', fill: '#BCC598', tint: '#E6EAD6', ink: '#4A5230', onFill: '#353C4E' },
+  long:  { name: '長めの休憩', verb: '長めに休む',   icon: 'moon',   fill: '#F6CAC5', tint: '#FBE6E3', ink: '#7A4640', onFill: '#353C4E' },
+  meal:  { name: '食事',       verb: '食事にする',   icon: 'bowl',   fill: '#E3AA7E', tint: '#F6E2D0', ink: '#6E4520', onFill: '#353C4E' },
 };
 
 export const DEFAULTS = {

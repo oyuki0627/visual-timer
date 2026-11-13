@@ -460,7 +460,7 @@ function tick() {
 
 // ---------- きろく画面 ----------
 const sumOf = (list, types) => list.filter((s) => types.includes(s.type)).reduce((x, s) => x + s.activeMs, 0);
-const LEVELS = ['#FFFFFF', '#E2E6EE', '#C5CCDA', '#A8B1C6'];
+const LEVELS = ['#F0EDEA', '#DDE3EE', '#B7C2D8', '#91A2C0'];
 const level = (ms) => (ms <= 0 ? 0 : ms < 60 * MIN ? 1 : ms < 180 * MIN ? 2 : 3);
 
 function navHTML(title, isNow) {
@@ -475,7 +475,7 @@ function goalHTML(workMs) {
   if (!S.goal) return '';
   const f = Math.min(1, workMs / (S.goal * MIN));
   const R = 9, L = 2 * Math.PI * R;
-  const ring = `<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="${R}" fill="none" stroke="#E3DED9" stroke-width="4"/><circle cx="12" cy="12" r="${R}" fill="none" stroke="#7B879E" stroke-width="4" stroke-linecap="round" stroke-dasharray="${(f * L).toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 12 12)"/></svg>`;
+  const ring = `<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="${R}" fill="none" stroke="#E3DED9" stroke-width="4"/><circle cx="12" cy="12" r="${R}" fill="none" stroke="#6F82A6" stroke-width="4" stroke-linecap="round" stroke-dasharray="${(f * L).toFixed(1)} ${L.toFixed(1)}" transform="rotate(-90 12 12)"/></svg>`;
   return f >= 1
     ? `<div class="goal"><span class="goal-done">目標 ${hm(S.goal * MIN)} 達成</span></div>`
     : `<div class="goal">${ring}目標 ${hm(S.goal * MIN)}</div>`;
